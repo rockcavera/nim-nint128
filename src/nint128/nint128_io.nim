@@ -21,7 +21,17 @@ func basePrefix(x: string, i: var int): range[2..16] =
       
       inc(i, 2)
 
-template parse(T: typedesc[SomeInt128]) =
+func parseImpl[T: SomeInt128](x: string): T {.inline.} =
+  var i = 0
+
+  when T is Int128:
+    var neg = false
+
+    if '-' == x[i]:
+      neg = true
+
+      inc(i)
+
   case basePrefix(x, i)
   of 2: # Binary
     while i < len(x):
@@ -83,25 +93,15 @@ template parse(T: typedesc[SomeInt128]) =
       inc(i)
   else: discard
 
+  when T is Int128:
+    if neg:
+      result = -result
+
 func parseInt128*(x: string): Int128 =
-  var
-    neg = false
-    i = 0
-
-  if '-' == x[i]:
-    neg = true
-
-    inc(i)
-  
-  parse(Int128)
-
-  if neg:
-    result = -result
+  parseImpl[Int128](x)
 
 func parseUInt128*(x: string): UInt128 =
-  var i = 0
-
-  parse(UInt128)
+  parseImpl[UInt128](x)
 
 func toInt(x: SomeInt128): int =
   cast[int](x.lo)

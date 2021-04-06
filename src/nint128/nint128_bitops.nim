@@ -1,11 +1,11 @@
 import std/bitops
 
-import ./nint128_bitwise, ./nint128_types
+import ./nint128_bitwise, ./nint128_cast, ./nint128_types
 
 func bitslice*(x: var Int128; slice: Slice[int]) {.inline.} =
-  let ux = cast[UInt128](x)
+  let ux = nint128Cast[UInt128](x)
 
-  x = cast[Int128](ux shl (127 - slice.b) shr (127 - slice.b + slice.a))
+  x = nint128Cast[Int128](ux shl (127 - slice.b) shr (127 - slice.b + slice.a))
 
 func bitslice*(x: var UInt128; slice: Slice[int]) {.inline.} =
   x = x shl (127 - slice.b) shr (127 - slice.b + slice.a)

@@ -1,6 +1,6 @@
 import std/bitops
 
-import ./nint128_bitops, ./nint128_bitwise, ./nint128_comparisons, ./nint128_types
+import ./nint128_bitops, ./nint128_bitwise, ./nint128_cast, ./nint128_comparisons, ./nint128_types
 
 func `+`*(x, y: UInt128): UInt128 {.inline.} =
   result.lo = x.lo + y.lo
@@ -61,8 +61,8 @@ func `*`*(a, b: UInt128): UInt128 {.inline.} =
 
 func `*`*(a, b: Int128): Int128 {.inline.} =
   var
-    x = cast[UInt128](a)
-    y = cast[UInt128](b)
+    x = nint128Cast[UInt128](a)
+    y = nint128Cast[UInt128](b)
     neg = false
   
   if isNegative(a):
@@ -73,7 +73,7 @@ func `*`*(a, b: Int128): Int128 {.inline.} =
     y = -y
     neg = true xor neg
 
-  result = cast[Int128](x * y)
+  result = nint128Cast[Int128](x * y)
 
   result.hi = result.hi and 0x7FFFFFFFFFFFFFFF'i64 # clearBit(result.hi, 63)
 
@@ -103,8 +103,8 @@ func divmod*(x, y: UInt128): tuple[q, r: UInt128] =
 
 func divmod*(a, b: Int128): tuple[q, r: Int128] =
   var
-    x = cast[UInt128](a)
-    y = cast[UInt128](b)
+    x = nint128Cast[UInt128](a)
+    y = nint128Cast[UInt128](b)
     neg = false
   
   if isNegative(a):
@@ -122,8 +122,8 @@ func divmod*(a, b: Int128): tuple[q, r: Int128] =
   q.hi = q.hi and 0x7FFFFFFFFFFFFFFF'u64 # clearBit(q.hi, 63)
   r.hi = r.hi and 0x7FFFFFFFFFFFFFFF'u64 # clearBit(r.hi, 63)
 
-  result.q = cast[Int128](q)
-  result.r = cast[Int128](r)
+  result.q = nint128Cast[Int128](q)
+  result.r = nint128Cast[Int128](r)
 
   if neg:
     result.q = -result.q
