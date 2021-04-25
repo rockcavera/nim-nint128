@@ -1,6 +1,6 @@
 import std/bitops
 
-import ./nint128_bitops, ./nint128_bitwise, ./nint128_cast, ./nint128_comparisons, ./nint128_types
+import ./nint128_bitwise, ./nint128_cast, ./nint128_comparisons, ./nint128_types
 
 func `+`*(x, y: UInt128): UInt128 {.inline.} =
   result.lo = x.lo + y.lo
@@ -34,25 +34,53 @@ func inc*[T: SomeInt128](x: var T, y: T = one(T)) {.inline.} =
 func dec*[T: SomeInt128](x: var T, y: T = one(T)) {.inline.} =
   x = x - y
 
-func mul64by64To128*(a, b: uint64, hi: var uint64): uint64 {.inline.} =
+when defined(amd64):
+  when defined(vcc):
+    func umul128(a, b: uint64, hi: var uint64): uint64 {.importc: "_umul128", header: "<intrin.h>".}
+  elif defined(gcc) or defined(clang):
+    func umul128(a, b: uint64, hi: var uint64): uint64 {.inline.} =
+      #asm """
+      #  "mulq %[`a`]"
+      #  : "=a"(`result`), "=d"(`*hi`)
+      #  : [`a`] "rm"(`a`), "a"(`b`)
+      #"""
+      {.emit: """
+        unsigned __int128 tu = (unsigned __int128)(`a`);
+        tu *= `b`;
+        `*hi` = tu >> 64;
+        return (unsigned long long int)(tu);
+      """.}
+
+func nimUmul128(a, b: uint64, hi: var uint64): uint64 {.inline.} =
   let
     aLo = a and 0xFFFFFFFF'u64
     bLo = b and 0xFFFFFFFF'u64
     aHi = a shr 32
     bHi = b shr 32
-
-  hi = aHi * bHi
-  result = aHi * bLo
   
-  let
-    aLo_bHi = aLo * bHi
-    aLo_bLo = aLo * bLo
-
-  result += (aLo_bLo shr 32) + (aLo_bHi and 0xFFFFFFFF'u64)
+  result = aLo * bLo
   
-  hi += (result shr 32) + (aLo_bHi shr 32)
+  var tmp = result shr 32
 
-  result = (result shl 32) or (aLo_bLo and 0xFFFFFFFF'u64)
+  result = result and 0xFFFFFFFF'u64
+  tmp += aHi * bLo
+  result += (tmp and 0xFFFFFFFF'u64) shl 32
+  hi = tmp shr 32
+  tmp = result shr 32
+  result = result and 0xFFFFFFFF'u64
+  tmp += bHi * aLo
+  result += (tmp and 0xFFFFFFFF'u64) shl 32
+  hi += tmp shr 32
+  hi += aHi * bHi
+
+func mul64by64To128*(a, b: uint64, hi: var uint64): uint64 {.inline.} =
+  when nimvm:
+    nimUmul128(a, b, hi)
+  else:
+    when defined(amd64):
+      umul128(a, b, hi)
+    else:
+      nimUmul128(a, b, hi)
 
 func `*`*(a, b: UInt128): UInt128 {.inline.} =
   result.lo = mul64by64To128(a.lo, b.lo, result.hi)
@@ -97,6 +125,125 @@ func shl256(hi, lo: var UInt128, y: int) {.inline.} =
     lo = zero(UInt128)
 
 include nint128_udiv
+
+func udiv128by64to64(xhi, xlo, y: uint64, q, r: var uint64) {.inline.} =
+  # asm divq é mais lerdo
+  var
+    dividendHi = xhi
+    dividendLo = xlo
+    divisor = y
+
+  let clz = countLeadingZeroBits(divisor)
+      
+  dividendHi = (dividendHi shl clz) or (dividendLo shr (64 - clz))
+  dividendLo = dividendLo shl clz
+  divisor = divisor shl clz
+
+  div2n1n(q, r, dividendHi, dividendLo, divisor)
+
+  r = r shr clz
+
+func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
+  var
+    dividend = x
+    divisor = y
+
+  if divisor.hi == 0:
+    if dividend.hi == 0:
+      result.lo = dividend.lo div divisor.lo
+      remainder.lo = dividend.lo mod divisor.lo
+      return
+
+    let divisor_clz = countLeadingZeroBits(divisor.lo)
+
+    if (divisor.lo and (divisor.lo - 1)) == 0:
+      let y_ctz = 128 - (divisor_clz + 64) - 1
+
+      result = dividend shr y_ctz
+      remainder = dividend and (divisor - one(UInt128))
+      return
+
+    if dividend.hi < divisor.lo:
+      var shift = (divisor_clz + 64) - countLeadingZeroBits(dividend.hi)
+
+      if shift < 8:
+        divisor = divisor shl shift
+
+        while shift >= 0:
+          result.lo = result.lo shl 1
+
+          if dividend >= divisor:
+            dividend -= divisor
+            result.lo = result.lo or 1'u64
+          
+          divisor = divisor shr 1
+
+          dec(shift)
+        
+        remainder = dividend
+      else:
+        dividend = dividend shl divisor_clz
+        divisor.lo = divisor.lo shl divisor_clz
+
+        div2n1n(result.lo, remainder.lo, dividend.hi, dividend.lo, divisor.lo)
+
+        remainder.lo = remainder.lo shr divisor_clz
+    else:
+      result.hi = dividend.hi div divisor.lo
+      dividend.hi = dividend.hi mod divisor.lo
+      dividend = dividend shl divisor_clz
+      divisor.lo = divisor.lo shl divisor_clz
+
+      div2n1n(result.lo, remainder.lo, dividend.hi, dividend.lo, divisor.lo)
+
+      remainder.lo = remainder.lo shr divisor_clz
+    
+    return
+
+  if (divisor and (divisor - one(UInt128))) == zero(UInt128):
+    let y_ctz = 128 - countLeadingZeroBits(divisor.hi) - 1
+  
+    result = dividend shr y_ctz
+    remainder = dividend and (divisor - one(UInt128))
+    return
+
+  if divisor == dividend:
+    result.lo = 1'u64
+    return
+
+  if divisor > dividend:
+    remainder = dividend
+    return
+
+  let divisor_clz = countLeadingZeroBits(divisor.hi)
+
+  var shift = divisor_clz - countLeadingZeroBits(dividend.hi)
+
+  if shift < 35:
+    divisor = divisor shl shift
+
+    while shift >= 0:
+      result.lo = result.lo shl 1
+
+      if dividend >= divisor:
+        dividend -= divisor
+        result.lo = result.lo or 1'u64
+      
+      divisor = divisor shr 1
+
+      dec(shift)
+    
+    remainder = dividend
+  else:
+    var xxhi: UInt128
+
+    shl256(xxhi, dividend, divisor_clz)
+
+    divisor = divisor shl divisor_clz
+    
+    div2n1n(result, remainder, xxhi, dividend, divisor)
+
+    remainder = remainder shr divisor_clz
 
 func divmod*(x, y: UInt128): tuple[q, r: UInt128] =
   result.q = divmodImpl(x, y, result.r)
