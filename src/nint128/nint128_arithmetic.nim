@@ -34,22 +34,25 @@ func inc*[T: SomeInt128](x: var T, y: T = one(T)) {.inline.} =
 func dec*[T: SomeInt128](x: var T, y: T = one(T)) {.inline.} =
   x = x - y
 
-when defined(amd64):
-  when defined(vcc):
-    func umul128(a, b: uint64, hi: var uint64): uint64 {.importc: "_umul128", header: "<intrin.h>".}
-  elif defined(gcc) or defined(clang):
+when sizeof(int) == 8:
+  when defined(gcc) or defined(clang):
+    const definedUmul128 = true
+
     func umul128(a, b: uint64, hi: var uint64): uint64 {.inline.} =
-      #asm """
-      #  "mulq %[`a`]"
-      #  : "=a"(`result`), "=d"(`*hi`)
-      #  : [`a`] "rm"(`a`), "a"(`b`)
-      #"""
       {.emit: """
         unsigned __int128 tu = (unsigned __int128)(`a`);
         tu *= `b`;
         `*hi` = tu >> 64;
         return (unsigned long long int)(tu);
       """.}
+  elif defined(amd64) and defined(vcc):
+    const definedUmul128 = true
+
+    func umul128(a, b: uint64, hi: var uint64): uint64 {.importc: "_umul128", header: "<intrin.h>".}
+  else:
+    const definedUmul128 = false
+else:
+  const definedUmul128 = false
 
 func nimUmul128(a, b: uint64, hi: var uint64): uint64 {.inline.} =
   let
@@ -77,7 +80,7 @@ func mul64by64To128*(a, b: uint64, hi: var uint64): uint64 {.inline.} =
   when nimvm:
     nimUmul128(a, b, hi)
   else:
-    when defined(amd64):
+    when definedUmul128:
       umul128(a, b, hi)
     else:
       nimUmul128(a, b, hi)
@@ -126,22 +129,21 @@ func shl256(hi, lo: var UInt128, y: int) {.inline.} =
 
 include nint128_udiv
 
-func udiv128by64to64(xhi, xlo, y: uint64, q, r: var uint64) {.inline.} =
-  # asm divq é mais lerdo
+func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64 {.inline.} =
+  # Divides 128 by 64, if the high part of the dividend is less than the divisor
+  # asm divq is more slow
   var
-    dividendHi = xhi
-    dividendLo = xlo
+    dividend = x
     divisor = y
 
   let clz = countLeadingZeroBits(divisor)
-      
-  dividendHi = (dividendHi shl clz) or (dividendLo shr (64 - clz))
-  dividendLo = dividendLo shl clz
+
+  dividend = dividend shl clz
   divisor = divisor shl clz
 
-  div2n1n(q, r, dividendHi, dividendLo, divisor)
+  div2n1n(result, remainder, dividend.hi, dividend.lo, divisor)
 
-  r = r shr clz
+  remainder = remainder shr clz
 
 func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
   var
