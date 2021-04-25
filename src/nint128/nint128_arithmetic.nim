@@ -221,7 +221,7 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
 
   var shift = divisor_clz - countLeadingZeroBits(dividend.hi)
 
-  if shift < 35:
+  if shift < 23:
     divisor = divisor shl shift
 
     while shift >= 0:
@@ -237,14 +237,22 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
     
     remainder = dividend
   else:
-    var xxhi: UInt128
+    var m: UInt128
 
-    shl256(xxhi, dividend, divisor_clz)
+    let n2 = dividend.hi shr (64 - divisor_clz)
 
+    dividend = dividend shl divisor_clz
     divisor = divisor shl divisor_clz
-    
-    div2n1n(result, remainder, xxhi, dividend, divisor)
 
+    div2n1n(result.lo, dividend.hi, n2, dividend.hi, divisor.hi)
+    
+    m.lo = mul64by64To128(result.lo, divisor.lo, m.hi)
+
+    if m.hi > dividend.hi or (m.hi == dividend.hi and m.lo > dividend.lo):
+      dec(result.lo)
+      m = m - divisor
+    
+    remainder = dividend - m
     remainder = remainder shr divisor_clz
 
 func divmod*(x, y: UInt128): tuple[q, r: UInt128] =
