@@ -60,37 +60,3 @@ func div2n1n(q, r: var uint64, n_hi, n_lo, d: uint64) {.inline.} =
 
   q = (q1 shl halfSize) or q2
   r = r2
-
-func div3n2n(q: var uint64, r: var UInt128, a2, a1, a0: uint64, b: UInt128) {.inline.} =
-  var
-    c: uint64
-    d: UInt128
-    carry: bool
-
-  if a2 < b.hi:
-    div2n1n(q, c, a2, a1, b.hi)
-
-  else:
-    q = 0'u64 - 1'u64 # We want 0xFFFFF ....
-    c = a1 + b.hi
-    if c < a1:
-      carry = true
-
-  d.lo = mul64by64To128(q, b.lo, d.hi)
-  let ca0 = UInt128(hi: c, lo: a0)
-  r = ca0 - d
-
-  if (not carry) and d > ca0:
-    dec(q)
-    r += b
-
-    # if there was no carry
-    if r > b:
-      dec(q)
-      r += b
-
-func div2n1n(q, r: var UInt128, ah, al, b: UInt128) {.inline.} =
-  var s: UInt128
-  
-  div3n2n(q.hi, s, ah.hi, ah.lo, al.hi, b)
-  div3n2n(q.lo, r, s.hi, s.lo, al.lo, b)
