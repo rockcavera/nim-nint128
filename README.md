@@ -2,7 +2,7 @@ Nint128, as the name suggests, is a package to work with integers, signed and un
 
 Currently the package implements 128-bit operations in pure Nim. Therefore, it is highly portable.
 
-There are plans to add a second implementation using the builtins (type __int128) from GCC and CLANG. Also, who knows in the future, add assembly implementations.
+There may be C code and embedded assembly, as well as use of intrinsics.
 
 # Status
 The basic implementation is ready, but not fully tested. Visit the `tests` directory to see what has been tested and what remains to be tested.
