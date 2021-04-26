@@ -160,7 +160,7 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
     if dividend.hi < divisor.lo:
       var shift = (divisor_clz + 64) - countLeadingZeroBits(dividend.hi)
 
-      if shift < 8:
+      if shift < 13: # or 8?
         divisor = divisor shl shift
 
         while shift >= 0:
@@ -213,7 +213,7 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
 
   var shift = divisor_clz - countLeadingZeroBits(dividend.hi)
 
-  if shift < 23:
+  if shift < 14:
     divisor = divisor shl shift
 
     while shift >= 0:
