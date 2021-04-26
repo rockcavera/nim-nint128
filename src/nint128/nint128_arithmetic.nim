@@ -137,7 +137,6 @@ func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64
 func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
   # Known cases that the performance is significantly worse than the GCC and
   # CLANG divmod implementation for 128-bit integers:
-  # 1 - 340282366920938463463374607431768211455 by 18446744073709551615
   var
     dividend = x
     divisor = y
@@ -182,6 +181,10 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
         div2n1n(result.lo, remainder.lo, dividend.hi, dividend.lo, divisor.lo)
 
         remainder.lo = remainder.lo shr divisor_clz
+    elif dividend.hi == divisor.lo:
+      result.hi = 1'u64
+      result.lo = dividend.lo div divisor.lo
+      remainder.lo = dividend.lo mod divisor.lo
     else:
       result.hi = dividend.hi div divisor.lo
       dividend.hi = dividend.hi mod divisor.lo
