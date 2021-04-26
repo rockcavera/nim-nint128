@@ -134,6 +134,19 @@ func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64
 
   remainder = remainder shr clz
 
+template deltaShiftLimit(x: int): int =
+  # 128div64
+  when x == 0:
+    when defined(amd64): 13
+    elif defined(i386): 7
+    else: 8
+  
+  # 128div128
+  elif x == 1:
+    when defined(amd64): 16
+    elif defined(i386): 13
+    else: 8
+
 func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
   # Known cases that the performance is significantly worse than the GCC and
   # CLANG divmod implementation for 128-bit integers:
@@ -159,7 +172,7 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
     if dividend.hi < divisor.lo:
       var shift = (divisor_clz + 64) - countLeadingZeroBits(dividend.hi)
 
-      if shift < 13: # or 8?
+      if shift < deltaShiftLimit(0): # or 8?
         divisor = divisor shl shift
 
         while shift >= 0:
@@ -216,7 +229,7 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
 
   var shift = divisor_clz - countLeadingZeroBits(dividend.hi)
 
-  if shift < 14:
+  if shift < deltaShiftLimit(1):
     divisor = divisor shl shift
 
     while shift >= 0:
