@@ -114,19 +114,6 @@ func `*`*(a, b: Int128): Int128 {.inline.} =
 func `*=`*[T: SomeInt128](x: var T, y: T) {.inline.} =
   x = x * y
 
-func shl256(hi, lo: var UInt128, y: int) {.inline.} =
-  # Emulates 256-bit left shift
-  let y = y and 255
-
-  if y == 0:
-    return
-  elif y < 128:
-    hi = (hi shl y) or (lo shr (128 - y))
-    lo = lo shl y
-  else:
-    hi = lo shl (y - 128)
-    lo = zero(UInt128)
-
 include nint128_udiv
 
 func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64 {.inline.} =

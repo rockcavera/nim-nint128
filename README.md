@@ -10,6 +10,10 @@ The basic implementation is ready, but not fully tested. Visit the `tests` direc
 Some things may change and break down in the future.
 
 # Install
+`nimble install nint128`
+
+or
+
 `nimble install https://github.com/rockcavera/nim-nint128.git`
 
 # Basic Use
