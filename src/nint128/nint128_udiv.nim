@@ -22,7 +22,9 @@
 #
 #
 #
-# This code was taken from the stint package (https://github.com/status-im/nim-stint), file stint/private/uint_div.nim, and adapted for 128-bit integers with some changes.
+# This code was taken from the stint package
+# (https://github.com/status-im/nim-stint), file stint/private/uint_div.nim, and
+# adapted for 128-bit integers with some changes.
 
 func div2n1n(q, r: var uint64, n_hi, n_lo, d: uint64) {.inline.} =
   const

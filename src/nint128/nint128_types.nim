@@ -12,7 +12,7 @@ type
       lo*, hi*: uint64
     else:
       hi*, lo*: uint64
-  
+
   SomeInt128* = Int128|UInt128
 
 func low*(x: typedesc[Int128]): Int128 {.inline.} =

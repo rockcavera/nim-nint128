@@ -1,6 +1,8 @@
-import ./nint128/[nint128_arithmetic, nint128_bitops, nint128_bitwise, nint128_comparisons, nint128_io, nint128_math, nint128_types]
+import ./nint128/[nint128_arithmetic, nint128_bitops, nint128_bitwise,
+                  nint128_comparisons, nint128_io, nint128_math, nint128_types]
 
-export nint128_arithmetic, nint128_bitops, nint128_bitwise, nint128_comparisons, nint128_io, nint128_math, nint128_types
+export nint128_arithmetic, nint128_bitops, nint128_bitwise, nint128_comparisons,
+       nint128_io, nint128_math, nint128_types
 
 func i128*(x: string): Int128 {.inline.} = parseInt128(x)
 

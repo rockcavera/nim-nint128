@@ -19,7 +19,7 @@ func `not`*[T: SomeInt128](x: T): T {.inline.} =
 func `shl`*[T: SomeInteger](x: UInt128, y: T): UInt128 {.inline.} =
   # There is no undefined behavior when `y` is greater than 127
   let y = y and 127
-  
+
   if y == 0:
     return x
   elif y < 64:
@@ -55,7 +55,7 @@ func `shr`*[T: SomeInteger](x: UInt128, y: T): UInt128 {.inline.} =
 func `shr`*[T: SomeInteger](x: Int128, y: T): Int128 {.inline.} =
   # There is no undefined behavior when `y` is greater than 127
   let y = y and 127
-  
+
   if y == 0:
     return x
   elif y < 64:

@@ -48,7 +48,8 @@ when sizeof(int) == 8:
   elif defined(amd64) and defined(vcc):
     const definedUmul128 = true
 
-    func umul128(a, b: uint64, hi: var uint64): uint64 {.importc: "_umul128", header: "<intrin.h>".}
+    func umul128(a, b: uint64, hi: var uint64): uint64 {.importc: "_umul128",
+                                                        header: "<intrin.h>".}
   else:
     const definedUmul128 = false
 else:
@@ -60,9 +61,9 @@ func nimUmul128(a, b: uint64, hi: var uint64): uint64 {.inline.} =
     bLo = b and 0xFFFFFFFF'u64
     aHi = a shr 32
     bHi = b shr 32
-  
+
   result = aLo * bLo
-  
+
   var tmp = result shr 32
 
   result = result and 0xFFFFFFFF'u64
@@ -95,11 +96,11 @@ func `*`*(a, b: Int128): Int128 {.inline.} =
     x = nint128Cast[UInt128](a)
     y = nint128Cast[UInt128](b)
     neg = false
-  
+
   if isNegative(a):
     x = -x
     neg = true
-  
+
   if isNegative(b):
     y = -y
     neg = true xor neg
@@ -116,7 +117,8 @@ func `*=`*[T: SomeInt128](x: var T, y: T) {.inline.} =
 
 include nint128_udiv
 
-func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64 {.inline.} =
+func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64
+                     {.inline.} =
   # Divides 128 by 64, if the high part of the dividend is less than the divisor
   # asm divq is more slow
   var
@@ -133,6 +135,9 @@ func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64 {.in
   remainder = remainder shr clz
 
 func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
+  # Known cases that the performance is significantly worse than the GCC and
+  # CLANG divmod implementation for 128-bit integers:
+  # 1 - 340282366920938463463374607431768211455 by 18446744073709551615
   var
     dividend = x
     divisor = y
@@ -164,11 +169,11 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
           if dividend >= divisor:
             dividend -= divisor
             result.lo = result.lo or 1'u64
-          
+
           divisor = divisor shr 1
 
           dec(shift)
-        
+
         remainder = dividend
       else:
         dividend = dividend shl divisor_clz
@@ -186,12 +191,12 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
       div2n1n(result.lo, remainder.lo, dividend.hi, dividend.lo, divisor.lo)
 
       remainder.lo = remainder.lo shr divisor_clz
-    
+
     return
 
   if (divisor and (divisor - one(UInt128))) == zero(UInt128):
     let y_ctz = 128 - countLeadingZeroBits(divisor.hi) - 1
-  
+
     result = dividend shr y_ctz
     remainder = dividend and (divisor - one(UInt128))
     return
@@ -217,11 +222,11 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
       if dividend >= divisor:
         dividend -= divisor
         result.lo = result.lo or 1'u64
-      
+
       divisor = divisor shr 1
 
       dec(shift)
-    
+
     remainder = dividend
   else:
     var m: UInt128
@@ -232,13 +237,13 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
     divisor = divisor shl divisor_clz
 
     div2n1n(result.lo, dividend.hi, n2, dividend.hi, divisor.hi)
-    
+
     m.lo = mul64by64To128(result.lo, divisor.lo, m.hi)
 
     if m.hi > dividend.hi or (m.hi == dividend.hi and m.lo > dividend.lo):
       dec(result.lo)
       m = m - divisor
-    
+
     remainder = dividend - m
     remainder = remainder shr divisor_clz
 
@@ -250,15 +255,15 @@ func divmod*(a, b: Int128): tuple[q, r: Int128] =
     x = nint128Cast[UInt128](a)
     y = nint128Cast[UInt128](b)
     neg = false
-  
+
   if isNegative(a):
     x = -x
     neg = true
-  
+
   if isNegative(b):
     y = -y
     neg = true xor neg
-  
+
   var q, r: UInt128
 
   q = divmodImpl(x, y, r)

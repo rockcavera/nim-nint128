@@ -1,6 +1,7 @@
 import std/algorithm
 
-import ./nint128_arithmetic, ./nint128_bitwise, ./nint128_comparisons, ./nint128_math, ./nint128_types
+import ./nint128_arithmetic, ./nint128_bitwise, ./nint128_comparisons,
+       ./nint128_math, ./nint128_types
 
 func basePrefix(x: string, i: var int): range[2..16] =
   result = 10
@@ -10,15 +11,15 @@ func basePrefix(x: string, i: var int): range[2..16] =
   if '0' == x[i]:
     if x[i + 1] in { 'X', 'x' }: # Hexadecimal
       result = 16
-      
+
       inc(i, 2)
     elif x[i + 1] in { 'B', 'b' }: # Binary
       result = 2
-      
+
       inc(i, 2)
     elif x[i + 1] in { 'O', 'o' }: # Octal
       result = 8
-      
+
       inc(i, 2)
 
 func parseImpl[T: SomeInt128](x: string): T {.inline.} =
@@ -125,7 +126,7 @@ func toBin*(x: UInt128): string =
 
 func toOctImpl(x: UInt128, len: range[1..43]): string =
   const octdigits = "01234567"
-  
+
   var x = x
 
   setLen(result, len)
@@ -142,7 +143,7 @@ func toOct*(x: UInt128): string =
 
 func toHexImpl(x: UInt128, len: range[1..32]): string =
   const hexdigits = "0123456789ABCDEF"
-  
+
   var x = x
 
   setLen(result, len)
@@ -159,7 +160,7 @@ func toHex*(x: UInt128): string =
 
 func toString*[T: SomeInt128](x: T): string =
   const digits = "0123456789"
-  
+
   var (q, r) = divmod(x, ten(T))
 
   while true:
@@ -170,13 +171,13 @@ func toString*[T: SomeInt128](x: T): string =
 
     if zero(T) == q:
       break
-    
+
     (q, r) = divmod(q, ten(T))
-  
+
   when T is Int128:
     if isNegative(x):
       add(result, '-')
-  
+
   reverse(result)
 
 func `$`*(x: SomeInt128): string {.inline.} = toString(x)
