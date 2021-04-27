@@ -158,10 +158,11 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
   block divShift:
     if divisor.hi == 0:
       if (divisor.lo and (divisor.lo - 1)) == 0:
-        let y_ctz = 128 - (countLeadingZeroBits(divisor.lo) + 64) - 1
-
-        result = dividend shr y_ctz
-        remainder = dividend and (divisor - one(UInt128))
+        if divisor.lo == 0:
+          divisor.lo = uint64(1 div int(divisor.lo)) # intentional division by
+                                                     # zero (SIGILL or SIGFPE?)
+        result = dividend shr countTrailingZeroBits(divisor.lo)
+        remainder.lo = dividend.lo and (divisor.lo - 1)
         return
 
       if dividend.hi == 0:
@@ -178,7 +179,7 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
       let divisor_clz = countLeadingZeroBits(divisor.lo)
       
       if dividend.hi < divisor.lo:
-        shift = (divisor_clz + 64) - countLeadingZeroBits(dividend.hi)
+        shift = 64 + divisor_clz - countLeadingZeroBits(dividend.hi)
 
         if shift < deltaShiftLimit(0): break divShift
 
@@ -217,9 +218,9 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
     let divisor_clz = countLeadingZeroBits(divisor.hi)
 
     if (divisor and (divisor - one(UInt128))) == zero(UInt128):
-      let y_ctz = 128 - divisor_clz - 1
+      let divisor_ctz = 127 - divisor_clz
 
-      result = dividend shr y_ctz
+      result = dividend shr divisor_ctz
       remainder = dividend and (divisor - one(UInt128))
       return
 
