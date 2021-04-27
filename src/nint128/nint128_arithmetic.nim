@@ -153,98 +153,80 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
   var
     dividend = x
     divisor = y
+    shift: int
 
-  if divisor.hi == 0:
-    if dividend.hi == 0:
-      result.lo = dividend.lo div divisor.lo
-      remainder.lo = dividend.lo mod divisor.lo
-      return
+  block divShift:
+    if divisor.hi == 0:
+      if (divisor.lo and (divisor.lo - 1)) == 0:
+        let y_ctz = 128 - (countLeadingZeroBits(divisor.lo) + 64) - 1
 
-    let divisor_clz = countLeadingZeroBits(divisor.lo)
+        result = dividend shr y_ctz
+        remainder = dividend and (divisor - one(UInt128))
+        return
 
-    if (divisor.lo and (divisor.lo - 1)) == 0:
-      let y_ctz = 128 - (divisor_clz + 64) - 1
+      if dividend.hi == 0:
+        result.lo = dividend.lo div divisor.lo
+        remainder.lo = dividend.lo mod divisor.lo
+        return
 
-      result = dividend shr y_ctz
-      remainder = dividend and (divisor - one(UInt128))
-      return
+      if dividend.hi == divisor.lo:
+        result.lo = dividend.lo div divisor.lo
+        remainder.lo = dividend.lo mod divisor.lo
+        result.hi = 1'u64
+        return
 
-    if dividend.hi < divisor.lo:
-      var shift = (divisor_clz + 64) - countLeadingZeroBits(dividend.hi)
+      let divisor_clz = countLeadingZeroBits(divisor.lo)
+      
+      if dividend.hi < divisor.lo:
+        shift = (divisor_clz + 64) - countLeadingZeroBits(dividend.hi)
 
-      if shift < deltaShiftLimit(0): # or 8?
-        divisor = divisor shl shift
+        if shift < deltaShiftLimit(0): break divShift
 
-        while shift >= 0:
-          result.lo = result.lo shl 1
-
-          if dividend >= divisor:
-            dividend -= divisor
-            result.lo = result.lo or 1'u64
-
-          divisor = divisor shr 1
-
-          dec(shift)
-
-        remainder = dividend
-      else:
         dividend = dividend shl divisor_clz
         divisor.lo = divisor.lo shl divisor_clz
 
         div2n1n(result.lo, remainder.lo, dividend.hi, dividend.lo, divisor.lo)
 
         remainder.lo = remainder.lo shr divisor_clz
-    elif dividend.hi == divisor.lo:
-      result.hi = 1'u64
-      result.lo = dividend.lo div divisor.lo
-      remainder.lo = dividend.lo mod divisor.lo
-    else:
-      result.hi = dividend.hi div divisor.lo
-      dividend.hi = dividend.hi mod divisor.lo
-      dividend = dividend shl divisor_clz
-      divisor.lo = divisor.lo shl divisor_clz
+      else:
+        result.hi = dividend.hi div divisor.lo
+        dividend.hi = dividend.hi mod divisor.lo
+        dividend = dividend shl divisor_clz
+        divisor.lo = divisor.lo shl divisor_clz
 
-      div2n1n(result.lo, remainder.lo, dividend.hi, dividend.lo, divisor.lo)
+        div2n1n(result.lo, remainder.lo, dividend.hi, dividend.lo, divisor.lo)
 
-      remainder.lo = remainder.lo shr divisor_clz
+        remainder.lo = remainder.lo shr divisor_clz
 
-    return
+      return
 
-  if (divisor and (divisor - one(UInt128))) == zero(UInt128):
-    let y_ctz = 128 - countLeadingZeroBits(divisor.hi) - 1
+    if divisor.hi == dividend.hi:
+      if divisor.lo == dividend.lo:
+        result.lo = 1'u64
+      elif divisor.lo < dividend.lo:
+        remainder.lo = dividend.lo - divisor.lo
+        result.lo = 1'u64
+      else:
+        remainder = dividend
+      return
 
-    result = dividend shr y_ctz
-    remainder = dividend and (divisor - one(UInt128))
-    return
+    if divisor.hi > dividend.hi:
+      remainder = dividend
+      return
 
-  if divisor == dividend:
-    result.lo = 1'u64
-    return
+    let divisor_clz = countLeadingZeroBits(divisor.hi)
 
-  if divisor > dividend:
-    remainder = dividend
-    return
+    if (divisor and (divisor - one(UInt128))) == zero(UInt128):
+      let y_ctz = 128 - divisor_clz - 1
 
-  let divisor_clz = countLeadingZeroBits(divisor.hi)
+      result = dividend shr y_ctz
+      remainder = dividend and (divisor - one(UInt128))
+      return
 
-  var shift = divisor_clz - countLeadingZeroBits(dividend.hi)
+    shift = divisor_clz - countLeadingZeroBits(dividend.hi)
 
-  if shift < deltaShiftLimit(1):
-    divisor = divisor shl shift
+    if shift < deltaShiftLimit(1): break divShift
 
-    while shift >= 0:
-      result.lo = result.lo shl 1
-
-      if dividend >= divisor:
-        dividend -= divisor
-        result.lo = result.lo or 1'u64
-
-      divisor = divisor shr 1
-
-      dec(shift)
-
-    remainder = dividend
-  else:
     var m: UInt128
 
     let n2 = dividend.hi shr (64 - divisor_clz)
@@ -262,6 +244,22 @@ func divmodImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
 
     remainder = dividend - m
     remainder = remainder shr divisor_clz
+    return
+
+  divisor = divisor shl shift
+
+  while shift >= 0:
+    result.lo = result.lo shl 1
+
+    if dividend >= divisor:
+      dividend -= divisor
+      result.lo = result.lo or 1'u64
+
+    divisor = divisor shr 1
+
+    dec(shift)
+
+  remainder = dividend
 
 func divmod*(x, y: UInt128): tuple[q, r: UInt128] =
   result.q = divmodImpl(x, y, result.r)
