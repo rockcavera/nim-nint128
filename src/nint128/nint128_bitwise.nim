@@ -65,3 +65,9 @@ func `shr`*[T: SomeInteger](x: Int128, y: T): Int128 {.inline.} =
     if x.hi < 0:
       result.hi = -1'i64
     result.lo = cast[uint64](x.hi shr (y - 64))
+
+template `shl`*[T: SomeInt128](x: T, y: SomeInt128): T =
+  x shl y.lo
+
+template `shr`*[T: SomeInt128](x: T, y: SomeInt128): T =
+  x shr y.lo

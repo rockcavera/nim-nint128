@@ -120,7 +120,7 @@ include nint128_udiv
 func udiv128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64
                      {.inline.} =
   # Divides 128 by 64, if the high part of the dividend is less than the divisor
-  # asm divq is more slow
+  # asm divq is more slow on my 4th generation i7
   var
     dividend = x
     divisor = y
