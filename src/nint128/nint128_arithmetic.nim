@@ -39,7 +39,10 @@ when sizeof(int) == 8:
     const definedUmul128 = true
 
     func umul128(a, b: uint64, hi: var uint64): uint64 {.inline.} =
-      {.emit: """unsigned __int128 r = `a`; r *= `b`; *`hi` = r >> 64; `result` = r;""".}
+      when defined(cpp):
+        {.emit: """unsigned __int128 r = `a`; r *= `b`; `hi` = r >> 64; `result` = r;""".}
+      else:
+        {.emit: """unsigned __int128 r = `a`; r *= `b`; *`hi` = r >> 64; `result` = r;""".}
   elif defined(amd64) and defined(vcc):
     const definedUmul128 = true
 
