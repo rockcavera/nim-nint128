@@ -23,7 +23,7 @@ func `shl`*[T: SomeInteger](x: UInt128, y: T): UInt128 {.inline.} =
     result = x
   elif y == 64:
     result.hi = x.lo
-  elif y > 64:
+  elif y > 64.T:
     result.hi = x.lo shl (y and 63)
   else:
     result.hi = (x.hi shl y) or (x.lo shr (64.T - y))
@@ -36,7 +36,7 @@ func `shl`*[T: SomeInteger](x: Int128, y: T): Int128 {.inline.} =
     result = x
   elif y == 64:
     result.hi = cast[int64](x.lo)
-  elif y > 64:
+  elif y > 64.T:
     result.hi = cast[int64](x.lo shl (y and 63))
   else:
     result.hi = (x.hi shl y) or cast[int64](x.lo shr (64.T - y))
@@ -49,7 +49,7 @@ func `shr`*[T: SomeInteger](x: UInt128, y: T): UInt128 {.inline.} =
     return x
   elif y == 64:
     result.lo = x.hi
-  elif y > 64:
+  elif y > 64.T:
     result.lo = x.hi shr (y and 63)
   else:
     result.hi = x.hi shr y
@@ -64,7 +64,7 @@ func `shr`*[T: SomeInteger](x: Int128, y: T): Int128 {.inline.} =
     result.lo = cast[uint64](x.hi)
     if x.hi < 0:
       result.hi = -1'i64
-  elif y > 64:
+  elif y > 64.T:
     result.lo = cast[uint64](x.hi shr (y and 63))
     if x.hi < 0:
       result.hi = -1'i64
