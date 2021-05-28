@@ -19,52 +19,58 @@ func `not`*[T: SomeInt128](x: T): T {.inline.} =
 func `shl`*[T: SomeInteger](x: UInt128, y: T): UInt128 {.inline.} =
   # There is no undefined behavior when `y` is greater than 127
   let y = y and 127
-
   if y == 0:
-    return x
-  elif y < 64:
+    result = x
+  elif y == 64:
+    result.hi = x.lo
+  elif y > 64:
+    result.hi = x.lo shl (y and 63)
+  else:
     result.hi = (x.hi shl y) or (x.lo shr (64.T - y))
     result.lo = x.lo shl y
-  else:
-    result.hi = x.lo shl (y - 64)
 
 func `shl`*[T: SomeInteger](x: Int128, y: T): Int128 {.inline.} =
   # There is no undefined behavior when `y` is greater than 127
   let y = y and 127
-
   if y == 0:
-    return x
-  elif y < 64:
+    result = x
+  elif y == 64:
+    result.hi = cast[int64](x.lo)
+  elif y > 64:
+    result.hi = cast[int64](x.lo shl (y and 63))
+  else:
     result.hi = (x.hi shl y) or cast[int64](x.lo shr (64.T - y))
     result.lo = x.lo shl y
-  else:
-    result.hi = cast[int64](x.lo shl (y - 64))
 
 func `shr`*[T: SomeInteger](x: UInt128, y: T): UInt128 {.inline.} =
   # There is no undefined behavior when `y` is greater than 127
   let y = y and 127
-
   if y == 0:
     return x
-  elif y < 64:
+  elif y == 64:
+    result.lo = x.hi
+  elif y > 64:
+    result.lo = x.hi shr (y and 63)
+  else:
     result.hi = x.hi shr y
     result.lo = (x.lo shr y) or (x.hi shl (64.T - y))
-  else:
-    result.lo = x.hi shr (y - 64)
 
 func `shr`*[T: SomeInteger](x: Int128, y: T): Int128 {.inline.} =
   # There is no undefined behavior when `y` is greater than 127
   let y = y and 127
-
   if y == 0:
     return x
-  elif y < 64:
-    result.hi = x.hi shr y
-    result.lo = (x.lo shr y) or cast[uint64](x.hi shl (64.T - y))
-  else:
+  elif y == 64:
+    result.lo = cast[uint64](x.hi)
     if x.hi < 0:
       result.hi = -1'i64
-    result.lo = cast[uint64](x.hi shr (y - 64))
+  elif y > 64:
+    result.lo = cast[uint64](x.hi shr (y and 63))
+    if x.hi < 0:
+      result.hi = -1'i64
+  else:
+    result.hi = x.hi shr y
+    result.lo = (x.lo shr y) or cast[uint64](x.hi shl (64.T - y))
 
 template `shl`*[T: SomeInt128](x: T, y: SomeInt128): T =
   x shl y.lo
