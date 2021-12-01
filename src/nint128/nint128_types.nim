@@ -16,19 +16,19 @@ type
   SomeInt128* = Int128|UInt128
 
 func low*(x: typedesc[Int128]): Int128 {.inline.} =
-  ## -170141183460469231731687303715884105728
+  ## `-170141183460469231731687303715884105728`
   result.hi = 0x8000000000000000'i64
 
 func high*(x: typedesc[Int128]): Int128 {.inline.} =
-  ## 170141183460469231731687303715884105727
+  ## `170141183460469231731687303715884105727`
   result.lo = 0xFFFFFFFFFFFFFFFF'u64
   result.hi = 0x7FFFFFFFFFFFFFFF'i64
 
 func low*(x: typedesc[UInt128]): UInt128 {.inline.} = discard
-  ## 0
+  ## `0`
 
 func high*(x: typedesc[UInt128]): UInt128 {.inline.} =
-  ## 340282366920938463463374607431768211455
+  ## `340282366920938463463374607431768211455`
   result.lo = 0xFFFFFFFFFFFFFFFF'u64
   result.hi = 0xFFFFFFFFFFFFFFFF'u64
 

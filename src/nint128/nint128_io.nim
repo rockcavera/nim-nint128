@@ -105,7 +105,7 @@ func parseUInt128*(x: string): UInt128 =
   parseImpl[UInt128](x)
 
 func toInt(x: SomeInt128): int =
-  cast[int](x.lo)
+  cast[int](x.lo) # `cast` to avoid overflow.
 
 func toBinImpl(x: UInt128, len: range[1..128]): string =
   const bindigits = "01"

@@ -92,40 +92,40 @@ block uint128_minus:
 block uint128_mul64by64To128:
   var vu128: UInt128
 
-  vu128.lo = mul64by64To128(0'u64, 0'u64, vu128.hi)
+  vu128 = mul64by64To128(0'u64, 0'u64)
   doAssert vu128 == zero(UInt128)
-  vu128.lo = mul64by64To128(0'u64, 1'u64, vu128.hi)
+  vu128 = mul64by64To128(0'u64, 1'u64)
   doAssert vu128 == zero(UInt128)
-  vu128.lo = mul64by64To128(0'u64, 4294967296'u64, vu128.hi)
+  vu128 = mul64by64To128(0'u64, 4294967296'u64)
   doAssert vu128 == zero(UInt128)
-  vu128.lo = mul64by64To128(0'u64, 0xFFFFFFFFFFFFFFFF'u64, vu128.hi)
+  vu128 = mul64by64To128(0'u64, 0xFFFFFFFFFFFFFFFF'u64)
   doAssert vu128 == zero(UInt128)
 
-  vu128.lo = mul64by64To128(1'u64, 0'u64, vu128.hi)
+  vu128 = mul64by64To128(1'u64, 0'u64)
   doAssert vu128 == zero(UInt128)
-  vu128.lo = mul64by64To128(1'u64, 1'u64, vu128.hi)
+  vu128 = mul64by64To128(1'u64, 1'u64)
   doAssert vu128 == one(UInt128)
-  vu128.lo = mul64by64To128(1'u64, 4294967296'u64, vu128.hi)
+  vu128 = mul64by64To128(1'u64, 4294967296'u64)
   doAssert vu128 == u_4294967296
-  vu128.lo = mul64by64To128(1'u64, 0xFFFFFFFFFFFFFFFF'u64, vu128.hi)
+  vu128 = mul64by64To128(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
   doAssert vu128 == u_18446744073709551615
 
-  vu128.lo = mul64by64To128(4294967296'u64, 0'u64, vu128.hi)
+  vu128 = mul64by64To128(4294967296'u64, 0'u64)
   doAssert vu128 == zero(UInt128)
-  vu128.lo = mul64by64To128(4294967296'u64, 1'u64, vu128.hi)
+  vu128 = mul64by64To128(4294967296'u64, 1'u64)
   doAssert vu128 == u_4294967296
-  vu128.lo = mul64by64To128(4294967296'u64, 4294967296'u64, vu128.hi)
+  vu128 = mul64by64To128(4294967296'u64, 4294967296'u64)
   doAssert vu128 == u_18446744073709551616
-  vu128.lo = mul64by64To128(4294967296'u64, 0xFFFFFFFFFFFFFFFF'u64, vu128.hi)
+  vu128 = mul64by64To128(4294967296'u64, 0xFFFFFFFFFFFFFFFF'u64)
   doAssert vu128 == u_79228162514264337589248983040
 
-  vu128.lo = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 0'u64, vu128.hi)
+  vu128 = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 0'u64)
   doAssert vu128 == zero(UInt128)
-  vu128.lo = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 1'u64, vu128.hi)
+  vu128 = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 1'u64)
   doAssert vu128 == u_18446744073709551615
-  vu128.lo = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 4294967296'u64, vu128.hi)
+  vu128 = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 4294967296'u64)
   doAssert vu128 == u_79228162514264337589248983040
-  vu128.lo = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 0xFFFFFFFFFFFFFFFF'u64, vu128.hi)
+  vu128 = mul64by64To128(0xFFFFFFFFFFFFFFFF'u64, 0xFFFFFFFFFFFFFFFF'u64)
   doAssert vu128 == u_340282366920938463426481119284349108225
 
 block uint128_start:
