@@ -91,4 +91,4 @@ d = d shr 64
 https://rockcavera.github.io/nim-nint128/theindex.html
 
 # License
-The file `nint128_udiv.nim`, in the directory `src/nint128/arithmetic`, is authored by Status Research & Development GmbH, part of the Stint package.
+The file `div2n1n.nim`, in the directory `src/nint128/arithmetic`, is authored by Status Research & Development GmbH, part of the Stint package.
