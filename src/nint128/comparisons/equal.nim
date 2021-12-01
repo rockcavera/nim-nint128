@@ -2,10 +2,10 @@ import ../nint128_types, ../nint128_cint128
 
 func nimEqual(x, y: UInt128): bool {.inline.} =
   # (x.hi == y.hi) and (x.lo == y.lo)
-  ((x.lo xor y.lo) or (x.hi xor y.hi)) == 0 # Generates assembly code
-                                            # practically the same as Cint128.
-                                            # It has one less instruction.
-                                            # Tested: amd64
+  ((x.lo xor y.lo) or (x.hi xor y.hi)) == 0'u64 # Generates assembly code
+                                                # practically the same as
+                                                # Cint128. It has one less
+                                                # instruction. Tested: amd64
 
 func cEqual(x, y: UInt128): bool {.inline, used.} =
   let
@@ -16,10 +16,13 @@ func cEqual(x, y: UInt128): bool {.inline, used.} =
 
 func nimEqual(x, y: Int128): bool {.inline.} =
   # (x.hi == y.hi) and (x.lo == y.lo)
-  ((x.lo xor y.lo) or uint64(x.hi xor y.hi)) == 0 # Generates assembly code
-                                                  # practically the same as
-                                                  # CInt128. It has one less
-                                                  # instruction. Tested: amd64
+  ((x.lo xor y.lo) or cast[uint64](x.hi xor y.hi)) == 0'u64 # Generates assembly
+                                                            # code practically
+                                                            # the same as
+                                                            # CInt128. It has
+                                                            # one less
+                                                            # instruction.
+                                                            # Tested: amd64
 
 func cEqual(x, y: Int128): bool {.inline, used.} =
   let
