@@ -4,23 +4,23 @@ func nimBitNot[T: SomeInt128](x: T): T {.inline.} =
   result.hi = not(x.hi)
   result.lo = not(x.lo)
 
-func cBitNot(x: UInt128): UInt128 {.inline.} =
+func cBitNot(x: UInt128): UInt128 {.inline, used.} =
   let x = cast[CUInt128](x)
 
   var r {.noInit.}: CUInt128
 
   {.emit: """`r` = ~`x`;""".}
 
-  return cast[UInt128](r)
+  result = cast[UInt128](r)
 
-func cBitNot(x: Int128): Int128 {.inline.} =
+func cBitNot(x: Int128): Int128 {.inline, used.} =
   let x = cast[CInt128](x)
 
   var r {.noInit.}: CInt128
 
   {.emit: """`r` = ~`x`;""".}
 
-  return cast[Int128](r)
+  result = cast[Int128](r)
 
 func `not`*(x: UInt128): UInt128 {.inline.} =
   when nimvm:

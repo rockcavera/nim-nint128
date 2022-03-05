@@ -4,7 +4,7 @@ func nimBitAnd[T: SomeInt128](x, y: T): T {.inline.} =
   result.hi = x.hi and y.hi
   result.lo = x.lo and y.lo
 
-func cBitAnd(x, y: UInt128): UInt128 {.inline.} =
+func cBitAnd(x, y: UInt128): UInt128 {.inline, used.} =
   let
     x = cast[CUInt128](x)
     y = cast[CUInt128](y)
@@ -13,9 +13,9 @@ func cBitAnd(x, y: UInt128): UInt128 {.inline.} =
 
   {.emit: """`r` = `x` & `y`;""".}
 
-  return cast[UInt128](r)
+  result = cast[UInt128](r)
 
-func cBitAnd(x, y: Int128): Int128 {.inline.} =
+func cBitAnd(x, y: Int128): Int128 {.inline, used.} =
   let
     x = cast[CInt128](x)
     y = cast[CInt128](y)
@@ -24,7 +24,7 @@ func cBitAnd(x, y: Int128): Int128 {.inline.} =
 
   {.emit: """`r` = `x` & `y`;""".}
 
-  return cast[Int128](r)
+  result = cast[Int128](r)
 
 func `and`*(x, y: UInt128): UInt128 {.inline.} =
   when nimvm:

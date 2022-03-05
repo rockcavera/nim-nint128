@@ -4,7 +4,7 @@ func nimBitOr[T: SomeInt128](x, y: T): T {.inline.} =
   result.hi = x.hi or y.hi
   result.lo = x.lo or y.lo
 
-func cBitOr(x, y: UInt128): UInt128 {.inline.} =
+func cBitOr(x, y: UInt128): UInt128 {.inline, used.} =
   let
     x = cast[CUInt128](x)
     y = cast[CUInt128](y)
@@ -13,9 +13,9 @@ func cBitOr(x, y: UInt128): UInt128 {.inline.} =
 
   {.emit: """`r` = `x` | `y`;""".}
 
-  return cast[UInt128](r)
+  result = cast[UInt128](r)
 
-func cBitOr(x, y: Int128): Int128 {.inline.} =
+func cBitOr(x, y: Int128): Int128 {.inline, used.} =
   let
     x = cast[CInt128](x)
     y = cast[CInt128](y)
@@ -24,7 +24,7 @@ func cBitOr(x, y: Int128): Int128 {.inline.} =
 
   {.emit: """`r` = `x` | `y`;""".}
 
-  return cast[Int128](r)
+  result = cast[Int128](r)
 
 func `or`*(x, y: UInt128): UInt128 {.inline.} =
   when nimvm:

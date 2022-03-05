@@ -4,7 +4,7 @@ import ../nint128_bitwise, ../nint128_cast, ../nint128_comparisons, ../nint128_t
 
 import ./minus, ./multiplication, ./subtraction
 
-include div2n1n
+include ../vendor/stint/div2n1n
 
 template deltaShiftLimit(x: int): int =
   # 128div64

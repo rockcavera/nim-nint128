@@ -4,7 +4,7 @@ func nimBitXor[T: SomeInt128](x, y: T): T {.inline.} =
   result.hi = x.hi xor y.hi
   result.lo = x.lo xor y.lo
 
-func cBitXor(x, y: UInt128): UInt128 {.inline.} =
+func cBitXor(x, y: UInt128): UInt128 {.inline, used.} =
   let
     x = cast[CUInt128](x)
     y = cast[CUInt128](y)
@@ -13,9 +13,9 @@ func cBitXor(x, y: UInt128): UInt128 {.inline.} =
 
   {.emit: """`r` = `x` ^ `y`;""".}
 
-  return cast[UInt128](r)
+  result = cast[UInt128](r)
 
-func cBitXor(x, y: Int128): Int128 {.inline.} =
+func cBitXor(x, y: Int128): Int128 {.inline, used.} =
   let
     x = cast[CInt128](x)
     y = cast[CInt128](y)
@@ -24,7 +24,7 @@ func cBitXor(x, y: Int128): Int128 {.inline.} =
 
   {.emit: """`r` = `x` ^ `y`;""".}
 
-  return cast[Int128](r)
+  result = cast[Int128](r)
 
 func `xor`*(x, y: UInt128): UInt128 {.inline.} =
   when nimvm:
