@@ -7,14 +7,14 @@ func cLessThan(x, y: UInt128): bool {.inline, used.} =
   let
     x = cast[CUInt128](x)
     y = cast[CUInt128](y)
-  
+
   {.emit: """`result` = (NIM_BOOL)(`x` < `y`);""".}
 
 func cLessThan(x, y: Int128): bool {.inline, used.} =
   let
     x = cast[CInt128](x)
     y = cast[CInt128](y)
-  
+
   {.emit: """`result` = (NIM_BOOL)(`x` < `y`);""".}
 
 func `<`*(x, y: UInt128): bool {.inline.} =

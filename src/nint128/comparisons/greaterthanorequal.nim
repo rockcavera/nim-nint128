@@ -9,17 +9,18 @@ func cGreaterThanOrEqual(x, y: UInt128): bool {.inline, used.} =
   let
     x = cast[CUInt128](x)
     y = cast[CUInt128](y)
-  
+
   {.emit: """`result` = (NIM_BOOL)(`x` >= `y`);""".}
 
 func cGreaterThanOrEqual(x, y: Int128): bool {.inline, used.} =
   let
     x = cast[CInt128](x)
     y = cast[CInt128](y)
-  
+
   {.emit: """`result` = (NIM_BOOL)(`x` >= `y`);""".}
 
-func `>=`*(x, y: UInt128): bool {.inline.} =
+func gte*(x, y: UInt128): bool {.inline.} =
+  # Cannot use `>=`. see this https://github.com/nim-lang/Nim/issues/19737
   when nimvm:
     nimGreaterThanOrEqual(x, y)
   else:
@@ -28,7 +29,8 @@ func `>=`*(x, y: UInt128): bool {.inline.} =
     else:
       nimGreaterThanOrEqual(x, y)
 
-func `>=`*(x, y: Int128): bool {.inline.} =
+func gte*(x, y: Int128): bool {.inline.} =
+  # Cannot use `>=`. see this https://github.com/nim-lang/Nim/issues/19737
   when nimvm:
     nimGreaterThanOrEqual(x, y)
   else:
@@ -36,3 +38,6 @@ func `>=`*(x, y: Int128): bool {.inline.} =
       cGreaterThanOrEqual(x, y)
     else:
       nimGreaterThanOrEqual(x, y)
+
+template GreaterThanOrEqual*(x, y: SomeInt128): bool =
+  gte(x, y)

@@ -54,7 +54,7 @@ func toBytesBE*(x: UInt128): array[16, byte] {.inline.} =
 func fromBytes*(T: typedesc[UInt128], x: openArray[byte], endian: Endianness = system.cpuEndian):
                UInt128 {.inline.} =
   ## Converts the sequence of bytes in `x` to a `UInt128` according to the given endianness.
-  ## 
+  ##
   ## Note: The default value of `system.cpuEndian` is not portable across machines.
   ##
   ## Panics when `len(x) < 16`. For shorter buffers, copy the data to an `array`, taking care to
@@ -67,7 +67,7 @@ func fromBytes*(T: typedesc[UInt128], x: openArray[byte], endian: Endianness = s
       result = result or (UInt128(hi: 0'u64, lo: uint64(x[i])) shl (i * 8))
   else:
     copyMem(addr result, unsafeAddr(x[0]), 16)
-  
+
   if endian != system.cpuEndian:
     result = swapBytes(result)
 

@@ -57,3 +57,21 @@ func `-`*(x, y: Int128): Int128 {.inline.} =
 
 func `-=`*[T: SomeInt128](x: var T, y: T) {.inline.} =
   x = x - y
+
+#
+# Possible addition to the package
+#
+
+func `-`*(x: UInt128, y: uint64): UInt128 {.inline.} =
+  result.lo = x.lo - y
+  result.hi = x.hi - uint64(x.lo < y)
+
+func `-`*(x: Int128, y: uint64): Int128 {.inline.} =
+  result.lo = x.lo - y
+  result.hi = x.hi - int64(x.lo < y)
+
+func `-=`*[T: SomeInt128](x: var T, y: uint64) {.inline.} =
+  x = x - y
+
+template `-`*[T: SomeInt128](x: uint64, y: T): T =
+  y - x

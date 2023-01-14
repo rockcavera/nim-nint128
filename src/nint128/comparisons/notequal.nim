@@ -13,7 +13,7 @@ func cNotEqual(x, y: UInt128): bool {.inline, used.} =
   let
     x = cast[CUInt128](x)
     y = cast[CUInt128](y)
-  
+
   {.emit: """`result` = (NIM_BOOL)(`x` != `y`);""".}
 
 func nimNotEqual(x, y: Int128): bool {.inline.} =
@@ -31,10 +31,11 @@ func cNotEqual(x, y: Int128): bool {.inline, used.} =
   let
     x = cast[CInt128](x)
     y = cast[CInt128](y)
-  
+
   {.emit: """`result` = (NIM_BOOL)(`x` != `y`);""".}
 
-func `!=`*(x, y: UInt128): bool {.inline.} =
+func ne*(x, y: UInt128): bool {.inline.} =
+  # Cannot use `!=`. see this https://github.com/nim-lang/Nim/issues/19737
   when nimvm:
     nimNotEqual(x, y)
   else:
@@ -43,7 +44,8 @@ func `!=`*(x, y: UInt128): bool {.inline.} =
     else:
       nimNotEqual(x, y)
 
-func `!=`*(x, y: Int128): bool {.inline.} =
+func ne*(x, y: Int128): bool {.inline.} =
+  # Cannot use `!=`. see this https://github.com/nim-lang/Nim/issues/19737
   when nimvm:
     nimNotEqual(x, y)
   else:
@@ -51,3 +53,6 @@ func `!=`*(x, y: Int128): bool {.inline.} =
       cNotEqual(x, y)
     else:
       nimNotEqual(x, y)
+
+template notEqual*(x, y: SomeInt128): bool =
+  ne(x, y)

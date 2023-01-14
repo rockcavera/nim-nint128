@@ -1,8 +1,8 @@
 import std/bitops
 
-import ../nint128_bitwise, ../nint128_cast, ../nint128_comparisons, ../nint128_types, ../nint128_cint128
+import ../nint128_bitops, ../nint128_bitwise, ../nint128_cast, ../nint128_comparisons, ../nint128_types, ../nint128_cint128
 
-import ./minus, ./multiplication, ./subtraction
+import ./addition, ./minus, ./multiplication, ./subtraction
 
 include ../vendor/stint/div2n1n
 
@@ -12,7 +12,7 @@ template deltaShiftLimit(x: int): int =
     when defined(amd64): 13
     elif defined(i386): 7
     else: 8
-  
+
   # 128div128
   elif x == 1:
     when defined(amd64): 16
@@ -49,7 +49,7 @@ func nimDivModImpl(x, y: UInt128, remainder: var UInt128): UInt128 {.inline.} =
         return
 
       let divisor_clz = countLeadingZeroBits(divisor.lo)
-      
+
       if dividend.hi < divisor.lo:
         shift = 64 + divisor_clz - countLeadingZeroBits(dividend.hi)
 
@@ -208,8 +208,7 @@ func divmod*(x, y: Int128): tuple[q, r: Int128] =
     else:
       nimDivMod(x, y)
 
-func div128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64
-                     {.inline.} =
+func div128by64to64*(x: UInt128, y: uint64, remainder: var uint64): uint64 =
   # Divides 128 by 64, if the high part of the dividend is less than the divisor
   # asm divq is more slow on my 4th generation i7
   var
@@ -236,9 +235,9 @@ func cDiv(x, y: UInt128): UInt128 {.inline, used.} =
 
   result = cast[UInt128](r)
 
-func `div`*(x, y: UInt128): UInt128 {.inline.} =
+func `div`*(x, y: UInt128): UInt128 =
   var remainder: UInt128 # Discarded
-  
+
   when nimvm:
     result = nimDivModImpl(x, y, remainder)
   else:
@@ -258,7 +257,7 @@ func cDiv(x, y: Int128): Int128 {.inline, used.} =
 
   result = cast[Int128](r)
 
-func `div`*(x, y: Int128): Int128 {.inline.} =
+func `div`*(x, y: Int128): Int128 =
   when nimvm:
     nimDivMod(x, y).q
   else:
@@ -278,7 +277,7 @@ func cMod(x, y: UInt128): UInt128 {.inline, used.} =
 
   result = cast[UInt128](r)
 
-func `mod`*(x, y: UInt128): UInt128 {.inline.} =
+func `mod`*(x, y: UInt128): UInt128 =
   when nimvm:
     discard nimDivModImpl(x, y, result)
   else:
@@ -298,7 +297,7 @@ func cMod(x, y: Int128): Int128 {.inline, used.} =
 
   result = cast[Int128](r)
 
-func `mod`*(x, y: Int128): Int128 {.inline.} =
+func `mod`*(x, y: Int128): Int128 =
   when nimvm:
     nimDivMod(x, y).r
   else:
@@ -306,3 +305,170 @@ func `mod`*(x, y: Int128): Int128 {.inline.} =
       cMod(x, y)
     else:
       nimDivMod(x, y).r
+
+# Static div 128
+# Based on libdivide https://github.com/ridiculousfish/libdivide
+
+func div256by128to128(n_hi, n_lo, d: UInt128, clz: int, r: var UInt128): UInt128 =
+  const
+    size = 128
+    halfSize = size div 2
+    halfMask = (one(UInt128) shl halfSize) - one(UInt128)
+
+  if n_hi >= d:
+    r = high(UInt128)
+    return high(UInt128)
+
+  let
+    n_hi = n_hi shl clz
+    d = d shl clz
+
+  template halfQR(n_hi, n_lo, d, d_hi, d_lo: UInt128): tuple[q, r: UInt128] =
+
+    var (q, r) = divmod(n_hi, d_hi)
+    let m = q * d_lo
+    r = (r shl halfSize) or n_lo
+
+    # Fix the reminder, we're at most 2 iterations off
+    if r < m:
+      q = q - 1'u64
+      r += d
+      if r >= d and r < m:
+        q = q - 1'u64
+        r += d
+    r -= m
+    (q, r)
+
+  let
+    d_hi = d shr halfSize
+    d_lo = d and halfMask
+
+  # First half of the quotient
+  let (q1, r1) = halfQR(n_hi, zero(UInt128), d, d_hi, d_lo)
+
+  # Second half
+  let (q2, r2) = halfQR(r1, zero(UInt128), d, d_hi, d_lo)
+
+  result = (q1 shl halfSize) or q2
+  r = r2 shr clz
+
+func genStaticDivU128(d: UInt128): tuple[magic: UInt128, more: int] =
+  if (d == zero(UInt128)):
+    raise newException(DivByZeroDefect, "divider must be != 0")
+
+  let
+    clz = countLeadingZeroBits(d)
+    floor_log_2_d = 127 - clz
+
+  if (d and (d - 1)) == zero(UInt128):
+    result.magic = zero(UInt128)
+    result.more = floor_log_2_d
+  else:
+    var rem, proposed_m: UInt128
+
+    proposed_m = div256by128to128(one(UInt128) shl floor_log_2_d, zero(UInt128), d, clz, rem)
+
+    let e = d - rem
+
+    if e < (one(UInt128) shl floor_log_2_d):
+      result.more = floor_log_2_d
+    else:
+      proposed_m += proposed_m
+      let twice_rem = rem + rem
+      if twice_rem >= d or twice_rem < rem:
+        proposed_m += 1'u64
+
+      result.more = floor_log_2_d or 0x80
+
+    result.magic = proposed_m + 1'u64
+
+func `div`*(x: UInt128, y: static[UInt128]): UInt128 {.inline.} =
+  const (magic, more) = genStaticDivU128(y)
+
+  when magic == zero(UInt128):
+    result = x shr more
+  else:
+    var q: UInt128
+
+    discard mul128by128ToTwo128(magic, x, q)
+
+    when (more and 0x80) > 0:
+      let t = ((x - q) shr 1) + q
+      result = t shr (more and 0x7F)
+    else:
+      result = q shr more
+
+func `mod`*(x: UInt128, y: static[UInt128]): UInt128 {.inline.} =
+  if x < y:
+    result = x
+  else:
+    let q = x div y
+
+    result = x - (y * q)
+
+#[ Under construction
+func genStaticDivS128(d: Int128): tuple[magic: Int128, more: int] =
+  if (d == zero(Int128)):
+    raise newException(DivByZeroDefect, "divider must be != 0")
+
+  let
+    negativeDivisor = if d.hi < 0: true else: false
+    absD = if negativeDivisor: -nint128Cast[UInt128](d)
+           else: nint128Cast[UInt128](d)
+    clz = countLeadingZeroBits(absD)
+    floor_log_2_d = 127 - clz
+
+  if (absD and (absD - 1)) == zero(UInt128):
+    result.magic = zero(Int128)
+    result.more = floor_log_2_d
+  else:
+    var rem, proposed_m: UInt128
+
+    proposed_m = div256by128to128(one(UInt128) shl (floor_log_2_d - 1), zero(UInt128), absD, clz, rem)
+
+    let e = absD - rem
+
+    if e < (one(UInt128) shl floor_log_2_d):
+      result.more = floor_log_2_d - 1
+    else:
+      proposed_m += proposed_m
+      let twice_rem = rem + rem
+      if twice_rem >= absD or twice_rem < rem:
+        proposed_m += 1'u64
+
+      result.more = floor_log_2_d or 0x80
+
+    result.magic = nint128Cast[Int128](proposed_m + 1'u64)
+
+    if negativeDivisor:
+      result.more = result.more or 0x100 # Mark if negative
+      result.magic = -result.magic
+
+func `div`*(x: Int128, y: static[Int128]): Int128 {.inline.} =
+  const
+    (magic, more) = genStaticDivS128(y)
+    shift = more and 127
+    sign = if more and 0x100: one(Int128)
+           else: zero(Int128)
+
+  when magic == zero(Int128):
+    const mask = (one(UInt128) shl shift) - one(UInt128)
+
+    let uq = cast[UInt128](x) + (cast[UInt128](x shr 127) and mask)
+
+    result = cast[Int128](uq)
+
+    result = result shr shift
+    result = (result xor sign) - sign
+  #[else:
+    var q: UInt128
+
+    discard mul128by128ToTwo128(magic, x, q)
+
+    when (more and 0x80) > 0:
+      let t = ((x - q) shr 1) + q
+      result = t shr (more and 0x7F)
+    else:
+      result = q shr more
+  ]#
+]#

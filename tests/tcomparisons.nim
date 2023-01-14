@@ -345,4 +345,3 @@ block int128_max:
   doAssert max(one(Int128), high(Int128)) == high(Int128)
 
   doAssert max(high(Int128), high(Int128)) == high(Int128)
-  

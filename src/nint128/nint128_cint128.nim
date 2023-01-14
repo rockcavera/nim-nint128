@@ -10,12 +10,12 @@
 ## or to use VCC compiler intrinsics. Therefore, there are possibilities to
 ## optimize the generated code, since, by default, the nint128 package only uses
 ## pure Nim. It doesn't need to be imported.
-## 
+##
 ## Usage
 ## =====
 ## To enable its use it is necessary to compile with:
 ## `-d:useCInt128=SYMBOL,SYMBOL,...,SYMBOL`.
-## 
+##
 ## Symbols for GCC and CLANG:
 ## - Comparisons: `cunotequal`, `cnotequal`, `cuequal`, `cequal`,
 ##   `cugreaterthanorequal`, `cgreaterthanorequal`, `cugreaterthan`,
@@ -31,7 +31,7 @@
 ## - Comparisons: none.
 ## - Bitwise: `cushl`, `cushr`.
 ## - Arithmetic: `cuplus`, `cuminus`, `cumul64by64To128`, `cumul`.
-## 
+##
 ## Symbols prefixed with `c` are for operators of type `Int128` and symbols
 ## prefixed with `cu` are for operators of type `UInt128`.
 ##
@@ -60,7 +60,7 @@ when defined(useCInt128):
   when sizeof(int) == 8:
     when defined(gcc) or defined(clang):
       const fakeCInt128 = false
-      
+
       when defined(useLegacyCInt128):
         type
           CInt128* {.importc: "__int128_t".} = object
@@ -75,7 +75,7 @@ when defined(useCInt128):
 
           CUInt128* {.importc: "unsigned __int128".} = object
             a, b: uint64
-      
+
       static:
         ccSupports = toHashSet(["cunotequal", "cnotequal", "cuequal", "cequal",
                                 "cugreaterthanorequal", "cgreaterthanorequal",

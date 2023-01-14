@@ -1,6 +1,6 @@
-import ../nint128_cast, ../nint128_comparisons, ../nint128_types, ../nint128_cint128
+import ../nint128_bitwise, ../nint128_cast, ../nint128_comparisons, ../nint128_types, ../nint128_cint128
 
-import ./minus
+import ./addition, ./minus
 
 when defined(amd64) and defined(vcc):
   func umul128(a, b: uint64, hi: var uint64): uint64 {.importc: "_umul128",
@@ -117,7 +117,7 @@ func `*`*(a, b: UInt128): UInt128 {.inline.} =
 
 func `*`*(a, b: Int128): Int128 {.inline.} =
   when nimvm:
-    nimMul128by128(a, b)    
+    nimMul128by128(a, b)
   else:
     when shouldUseCInt128("cmul"):
       cMul128by128(a, b)
@@ -138,3 +138,68 @@ func `*`*(a: UInt128, b: uint64): UInt128 {.inline.} =
 
 template `*`*(a: uint64, b: UInt128): UInt128 =
   b * a
+
+func mul128by128ToTwo128*(a, b: UInt128, hi: var UInt128): UInt128 =
+  ## Returns the multiplication between `a` and `b`. `hi` is the overflow.
+  var tmp = mul64by64To128(a.lo, b.lo)
+  result.lo = tmp.lo
+  tmp.lo = tmp.hi
+  tmp.hi = 0'u64
+  tmp += mul64by64To128(a.hi, b.lo)
+  hi.lo = tmp.hi
+  tmp.hi = 0'u64
+  tmp += mul64by64To128(b.hi, a.lo)
+  result.hi = tmp.lo
+  hi += tmp.hi
+  hi += mul64by64To128(a.hi, b.hi)
+
+func mul128by128ToTwo128*(a, b: UInt128, hi, lo: var UInt128): bool {.inline.} =
+  ## Extended multiplication between two `UInt128` which returns `true` if overflow occurs. `lo` is
+  ## the result of multiplication and `hi` is the overflow.
+  lo = mul128by128ToTwo128(a, b, hi)
+  hi > zero(UInt128)
+
+#[ Under construction
+func mul128by128ToTwo128*(a, b: Int128, hi, lo: var Int128): bool {.inline.} =
+  ## Extended multiplication between two `Int128` which returns `true` if overflow occurs. `lo` is
+  ## the result of multiplication and `hi` is the overflow.
+  #[
+  var uHi, uLo: UInt128
+  result = mul128by128ToTwo128(nint128Cast[UInt128](a), nint128Cast[UInt128](b), uHi, uLo)
+
+  hi = nint128Cast[Int128](uHi)
+  lo = nint128Cast[Int128](uLo)
+  ]#
+
+  var
+    uHi, uLo: UInt128
+    x = nint128Cast[UInt128](a)
+    y = nint128Cast[UInt128](b)
+    neg = false
+
+  if isNegative(a):
+    x = -x
+    neg = true
+
+  if isNegative(b):
+    y = -y
+    neg = true xor neg
+
+  result = mul128by128ToTwo128(x, y, uHi, uLo)
+  lo = nint128Cast[Int128](uLo)
+  hi = nint128Cast[Int128](uHi)
+
+  let loNegative = isNegative(lo)
+
+  result = result or loNegative
+  lo.hi = lo.hi and 0x7FFFFFFFFFFFFFFF'i64 # clearBit(result.hi, 63)
+
+  if result:
+    let bit = uint64(loNegative)
+
+    hi = hi shl 1
+    hi.lo = hi.lo or bit
+
+  if neg:
+    lo = -lo
+]#
