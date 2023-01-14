@@ -4,6 +4,8 @@ import ../nint128_bitops, ../nint128_bitwise, ../nint128_cast, ../nint128_compar
 
 import ./addition, ./minus, ./multiplication, ./subtraction
 
+func divmod*(x, y: UInt128): tuple[q, r: UInt128]
+
 include ../vendor/stint/div2n1n
 
 template deltaShiftLimit(x: int): int =
@@ -308,49 +310,6 @@ func `mod`*(x, y: Int128): Int128 =
 
 # Static div 128
 # Based on libdivide https://github.com/ridiculousfish/libdivide
-
-func div256by128to128(n_hi, n_lo, d: UInt128, clz: int, r: var UInt128): UInt128 =
-  const
-    size = 128
-    halfSize = size div 2
-    halfMask = (one(UInt128) shl halfSize) - one(UInt128)
-
-  if n_hi >= d:
-    r = high(UInt128)
-    return high(UInt128)
-
-  let
-    n_hi = n_hi shl clz
-    d = d shl clz
-
-  template halfQR(n_hi, n_lo, d, d_hi, d_lo: UInt128): tuple[q, r: UInt128] =
-
-    var (q, r) = divmod(n_hi, d_hi)
-    let m = q * d_lo
-    r = (r shl halfSize) or n_lo
-
-    # Fix the reminder, we're at most 2 iterations off
-    if r < m:
-      q = q - 1'u64
-      r += d
-      if r >= d and r < m:
-        q = q - 1'u64
-        r += d
-    r -= m
-    (q, r)
-
-  let
-    d_hi = d shr halfSize
-    d_lo = d and halfMask
-
-  # First half of the quotient
-  let (q1, r1) = halfQR(n_hi, zero(UInt128), d, d_hi, d_lo)
-
-  # Second half
-  let (q2, r2) = halfQR(r1, zero(UInt128), d, d_hi, d_lo)
-
-  result = (q1 shl halfSize) or q2
-  r = r2 shr clz
 
 func genStaticDivU128(d: UInt128): tuple[magic: UInt128, more: int] =
   if (d == zero(UInt128)):
