@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.3.0"
+version       = "0.3.1"
 author        = "rockcavera"
 description   = "128-bit integers"
 license       = "MIT"

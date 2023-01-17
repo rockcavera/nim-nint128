@@ -311,9 +311,17 @@ func `mod`*(x, y: Int128): Int128 =
 # Static div 128
 # Based on libdivide https://github.com/ridiculousfish/libdivide
 
-func genStaticDivU128(d: UInt128): tuple[magic: UInt128, more: int] =
+type
+  AuxStaticDiv[T: SomeInt128] = object
+    magic: T
+    more: int
+
+func genStaticDivU128(d: UInt128): AuxStaticDiv[UInt128] =
   if (d == zero(UInt128)):
-    raise newException(DivByZeroDefect, "divider must be != 0")
+    when (NimMajor, NimMinor, NimPatch) >= (1, 4, 0):
+      raise newException(DivByZeroDefect, "divider must be != 0")
+    else:
+      raise newException(DivByZeroError, "divider must be != 0")
 
   let
     clz = countLeadingZeroBits(d)
@@ -342,20 +350,20 @@ func genStaticDivU128(d: UInt128): tuple[magic: UInt128, more: int] =
     result.magic = proposed_m + 1'u64
 
 func `div`*(x: UInt128, y: static[UInt128]): UInt128 {.inline.} =
-  const (magic, more) = genStaticDivU128(y)
+  const aux = genStaticDivU128(y)
 
-  when magic == zero(UInt128):
-    result = x shr more
+  when aux.magic == zero(UInt128):
+    result = x shr aux.more
   else:
     var q: UInt128
 
-    discard mul128by128ToTwo128(magic, x, q)
+    discard mul128by128ToTwo128(aux.magic, x, q)
 
-    when (more and 0x80) > 0:
+    when (aux.more and 0x80) > 0:
       let t = ((x - q) shr 1) + q
-      result = t shr (more and 0x7F)
+      result = t shr (aux.more and 0x7F)
     else:
-      result = q shr more
+      result = q shr aux.more
 
 func `mod`*(x: UInt128, y: static[UInt128]): UInt128 {.inline.} =
   if x < y:
