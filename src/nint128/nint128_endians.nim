@@ -41,7 +41,10 @@ func toBytes*(x: UInt128, endian: Endianness = system.cpuEndian): array[16, byte
       let p = (x shr (i * 8)) and UInt128(hi: 0'u64, lo: 0xff'u64)
       result[i] = byte(p.lo)
   else:
-    copyMem(addr result, unsafeAddr(x), 16)
+    # https://github.com/nim-lang/Nim/issues/21687
+    # Prevents occurrence of this error when nimscript: `Error: undeclared identifier: 'copyMem'`
+    when not defined(nimscript):
+      copyMem(addr result, unsafeAddr(x), 16)
 
 func toBytesLE*(x: UInt128): array[16, byte] {.inline.} =
   ## Convert a native endian integer to a little endian byte sequence.
@@ -66,7 +69,10 @@ func fromBytes*(T: typedesc[UInt128], x: openArray[byte], endian: Endianness = s
     for i in 0 .. 15:
       result = result or (UInt128(hi: 0'u64, lo: uint64(x[i])) shl (i * 8))
   else:
-    copyMem(addr result, unsafeAddr(x[0]), 16)
+    # https://github.com/nim-lang/Nim/issues/21687
+    # Prevents occurrence of this error when nimscript: `Error: undeclared identifier: 'copyMem'`
+    when not defined(nimscript):
+      copyMem(addr result, unsafeAddr(x[0]), 16)
 
   if endian != system.cpuEndian:
     result = swapBytes(result)
